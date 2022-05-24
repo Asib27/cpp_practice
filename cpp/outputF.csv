@@ -1,8 +1,0 @@
-,Time_required_in_ms,,,,,,
-n,Merge_Sort,Quicksort,Randomized_Quicksort,Insertion_Sort,Quicksort_with_Sorted_Input,Randomized_Quicksort_with_Sorted_Input,STL_sort()_function
-5,0,0,0,0,0,0,0
-10,0,0,0,0,0,0,0
-100,0,0.05,0.2,0,0.05,0,0.05
-1000,0.95,0.15,0.1,0.9,1.75,0.05,0.05
-10000,6.75,1.1,1.6,51.3,118.35,0.85,1.05
-100000,74.7,14,17.7,4631.25,12150.6,9.75,12.05
