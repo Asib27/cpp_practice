@@ -1,0 +1,3 @@
+Amin    600800900   amin@aust.edu   Malibag     1011990
+Asif    600800901   asif@aust.edu   Mogbazar    1011991
+Abir    600800902   abir@aust.edu   Motijheel   1011992
