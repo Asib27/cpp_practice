@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <cmath>
 
 using namespace std;
 
@@ -63,7 +64,7 @@ private:
     /**
      * @brief removes the given node from rootlist
      * but it still contains reference to its neighbours
-     * 
+     * ok
      * @param toDelete 
      * @return Node* 
      */
@@ -91,7 +92,7 @@ private:
     /**
      * @brief inserts all child node of parent node to same rootlist
      * the parent exists
-     * 
+     * ok
      * @param parent 
      */
     void _insertChildOfNodeToRootList(Node* parent){
@@ -143,23 +144,20 @@ private:
         return parent;
     }
 
-    int _findMaxDegree(){
-        return 0;
-    }
-
     /**
      * @brief consolidates the fibonacchi heap
      * 
      */
     void _consolidate(){
-        int mxDegree = 0;
         _mn->left->right = nullptr;
+        vector<Node *> roots;
         for(auto cur = _mn; cur != nullptr ;cur = cur->right){
-            mxDegree = max(mxDegree, cur->degree);
+            roots.push_back(cur);
         }
 
-        vector<Node *> array(mxDegree+2, nullptr);
-        for(auto cur = _mn; cur != nullptr ;cur = cur->right){
+        int upper_bound = floor(log2(_length)) + 1;
+        vector<Node *> array(upper_bound, nullptr);
+        for(auto cur : roots){
             auto z = cur;
             int d = cur->degree;
             while(array[d] != nullptr){
@@ -332,7 +330,7 @@ int main(int argc, char const *argv[])
     int inp2;
 
     map<int, Node *> mp;
-    for(int i = 1; i <= 3; i++){
+    for(int i = 1; i <= 10; i++){
         mp[i] =  new Node(i);
         fh.insert(mp[i]);
     }
