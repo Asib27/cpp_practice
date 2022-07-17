@@ -2,7 +2,9 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <utility>
 #include <cmath>
+#include <climits>
 
 using namespace std;
 
@@ -11,18 +13,21 @@ struct Node
     int key;
     int degree;
     bool mark;
+    int data;
     Node* left;
     Node* right;
     Node* parent;
     Node* child;
 
     Node(int key): key(key){};
+    Node(int key, int data): key(key), data(data){};
 
     friend ostream& operator<<(ostream& os, const Node &n){
         os << "{ " 
            << "key: " << n.key << " ; "
            << "degree: " << n.degree << "; "
-           << "mark: " << n.degree << "; "
+           << "mark: " << n.mark << "; "
+           << "data: " << n.data << "; "
            << "left: " << (n.left == nullptr? -1: n.left->key) << "; "
            << "right: " << (n.right == nullptr? -1: n.right->key) << "; "
            << "parent: " << (n.parent == nullptr? -1: n.parent->key) << "; "
@@ -41,7 +46,7 @@ private:
 
     /**
      * @brief inserts a node to rootlist after given node
-     * ok
+     * 
      * @param after 
      * @param toInsert 
      */
@@ -64,7 +69,7 @@ private:
     /**
      * @brief removes the given node from rootlist
      * but it still contains reference to its neighbours
-     * ok
+     * 
      * @param toDelete 
      * @return Node* 
      */
@@ -92,7 +97,7 @@ private:
     /**
      * @brief inserts all child node of parent node to same rootlist
      * the parent exists
-     * ok
+     * 
      * @param parent 
      */
     void _insertChildOfNodeToRootList(Node* parent){
@@ -105,10 +110,10 @@ private:
 
     /**
      * @brief inserts a new child at root list after insertAt
-     * ok
+     * 
      * @param insertAt 
      * @param toInsert 
-     * return Node* insertAt node is changed in the function call
+     * @return Node* insertAt node is changed in the function call
      * so it is recommanded to assign to the return value;
      */
     Node* _insertNewChildAtRootList(Node* insertAt, Node* toInsert){
@@ -155,7 +160,7 @@ private:
             roots.push_back(cur);
         }
 
-        int upper_bound = floor(log2(_length)) + 1;
+        int upper_bound = log2(_length) + 2;
         vector<Node *> array(upper_bound, nullptr);
         for(auto cur : roots){
             auto z = cur;
@@ -188,7 +193,8 @@ private:
 
     void _cut(Node* parent, Node* node){
         parent->child = _removeNodeFromRootList(node);
-        parent->child->parent = parent;
+        if(parent->child)
+            parent->child->parent = parent;
         parent->degree--;
 
         _insertTORootListAfterNode(_mn, node);
@@ -259,9 +265,17 @@ public:
         }
     }
 
+    Node* top(){
+        return _mn;
+    }
+
+    int length(){
+        return _length;
+    }
+
     void decreaseKey(Node* node, int k){
-        if(node->key > k) {
-            cerr << "node->key > k" << endl;;
+        if(node->key <= k) {
+            cerr << "node->key <= k" << endl;;
             return ;
         }
 
@@ -302,29 +316,47 @@ FibonacciHeap::~FibonacciHeap()
 {
 }
 
-Node* _removeNodeFromRootList(Node *toDelete){
-    auto left = toDelete->left;
+typedef vector<vector<pair<int, int>>> WeightedGraph;
 
-    if(toDelete == left) // only one child left
-        left = nullptr;
-    else if(toDelete->right == toDelete->left){ // only two child left
-        // cld left ---> left
-        left->left = left;
-        left->right = left;
-    }
-    else{ // if at least three child is there
-        // left cld right
-        // left right
-        toDelete->left->right = toDelete->right;
-        toDelete->right->left  = toDelete->left;
+int dijkstra(int src, int dest, const WeightedGraph &graph){
+    // initialization
+    int n = graph.size();
+
+    vector<Node *> nodes(n);
+    vector<bool> visited(n, false);
+    FibonacciHeap fh;
+    for(int i = 0; i < n; i++){
+        nodes[i] = new Node(INT_MAX, i);
+        fh.insert(nodes[i]);
     }
 
-    toDelete->parent = nullptr;
-    return left;
+    fh.decreaseKey(nodes[src], 0);
+    visited[src] = true;
+
+    cout << fh << endl;
+
+    while(fh.length()){
+        auto mn = fh.top(); fh.pop();
+
+        if(mn->data == dest) return mn->key;
+
+        visited[mn->data] = true;
+        for(auto i: graph[mn->data]){
+            auto node = nodes[i.first];
+            int weight = i.second;
+
+            if(mn->key + weight < node->key){
+                fh.decreaseKey(node, mn->key + weight);
+            }
+        }
+
+        cout << fh << endl;
+    }
+
+    return nodes[dest]->key;
 }
 
-int main(int argc, char const *argv[])
-{
+void tester(){
     FibonacciHeap fh;
     string inp1;
     int inp2;
@@ -346,14 +378,32 @@ int main(int argc, char const *argv[])
             fh.pop();
         }
 
-        if(inp1 == "r"){
-            if(mp.count(inp2)){
-                auto t = _removeNodeFromRootList(mp[inp2]);
-                cout << *t << endl;
-                cout << *mp[inp2] << endl;
-            }
+        if(inp1 == "d"){
+            int n; cin >> n;
+            fh.decreaseKey(mp[inp2], n);
         }
 
         cout << fh << endl;
     }
+}
+
+int main(int argc, char const *argv[])
+{
+    tester();
+    int n, m;
+    cin >> n >> m;
+
+    WeightedGraph graph(n);
+    for(int i = 0; i < m; i++){
+        int a, b, w;
+        cin >> a >> b >> w;
+
+        graph[a].push_back({b,w});
+    }
+
+    int u,v;
+    cin >> u >> v;
+
+    int ans = dijkstra(u, v, graph);
+    cout << ans << endl;
 }
