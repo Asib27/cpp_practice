@@ -1,12 +1,17 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <algorithm>
 #include <map>
 #include <utility>
 #include <cmath>
 #include <climits>
+#include <queue>
+#include <ctime>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 struct Node
 {
@@ -28,10 +33,10 @@ struct Node
            << "degree: " << n.degree << "; "
            << "mark: " << n.mark << "; "
            << "data: " << n.data << "; "
-           << "left: " << (n.left == nullptr? -1: n.left->key) << "; "
-           << "right: " << (n.right == nullptr? -1: n.right->key) << "; "
-           << "parent: " << (n.parent == nullptr? -1: n.parent->key) << "; "
-           << "child: " << (n.child == nullptr? -1: n.child->key) << "; "
+           << "left: " << (n.left == nullptr? -1: n.left->data) << "; "
+           << "right: " << (n.right == nullptr? -1: n.right->data) << "; "
+           << "parent: " << (n.parent == nullptr? -1: n.parent->data) << "; "
+           << "child: " << (n.child == nullptr? -1: n.child->data) << "; "
            << " }";
 
         return os;
@@ -154,9 +159,9 @@ private:
      * 
      */
     void _consolidate(){
-        _mn->left->right = nullptr;
         vector<Node *> roots;
-        for(auto cur = _mn; cur != nullptr ;cur = cur->right){
+        roots.push_back(_mn);
+        for(auto cur = _mn->right; cur != _mn ;cur = cur->right){
             roots.push_back(cur);
         }
 
@@ -168,8 +173,8 @@ private:
             while(array[d] != nullptr){
                 auto y = array[d];
 
-                if(cur->key < y->key) z = _fibHeapLink(cur, y);
-                else z = _fibHeapLink(y, cur);
+                if(z->key <= y->key) z = _fibHeapLink(z, y);
+                else z = _fibHeapLink(y, z);
 
                 array[d] = nullptr;
 
@@ -317,13 +322,45 @@ FibonacciHeap::~FibonacciHeap()
 }
 
 typedef vector<vector<pair<int, int>>> WeightedGraph;
+typedef tuple<int, int, int> WeightedEdge;
 
-int dijkstra(int src, int dest, const WeightedGraph &graph){
+int djaskatraWithBinaryHeap(int src, int dest, const WeightedGraph &graph, int &pathLength){
+    int nodes = graph.size();
+    vector<int> distance(nodes, INT_MAX), path(nodes, 0);
+    distance[src] = 0;
+    path[src] = 0;
+
+    priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> pq;
+    pq.push({0,src});
+
+    while(!pq.empty()){
+        auto t = pq.top(); pq.pop();
+        int cur = t.second;
+
+        for(auto &i: graph[cur]){
+            //pair represented diffrantly in graph and priority_queue
+            int next = i.first, edgeWeight =  i.second; 
+            
+            if(distance[cur] + edgeWeight < distance[next]){
+                distance[next] = distance[cur] + edgeWeight;
+                path[next] = path[cur]+1;
+                pq.push({distance[next], next});
+            }
+        }
+    }
+
+    pathLength = path[dest];
+    return distance[dest];
+}
+
+
+int djaskatraWithFibonacciHeap(int src, int dest, const WeightedGraph &graph, int &pathLength){
     // initialization
     int n = graph.size();
 
     vector<Node *> nodes(n);
     vector<bool> visited(n, false);
+    vector<int> path(n, 0);
     FibonacciHeap fh;
     for(int i = 0; i < n; i++){
         nodes[i] = new Node(INT_MAX, i);
@@ -332,28 +369,45 @@ int dijkstra(int src, int dest, const WeightedGraph &graph){
 
     fh.decreaseKey(nodes[src], 0);
     visited[src] = true;
+    path[src] = 0;
 
-    cout << fh << endl;
+    //cout << fh << endl;
 
     while(fh.length()){
         auto mn = fh.top(); fh.pop();
 
-        if(mn->data == dest) return mn->key;
+        if(mn->data == dest){ 
+            pathLength = path[dest];        
+            int ans = nodes[dest]->key;
+
+            for(int i = 0; i < n; i++){
+                delete nodes[i];
+            }
+            return ans;
+        }
 
         visited[mn->data] = true;
         for(auto i: graph[mn->data]){
             auto node = nodes[i.first];
             int weight = i.second;
 
-            if(mn->key + weight < node->key){
+            if(!visited[node->data] && mn->key + weight < node->key){
                 fh.decreaseKey(node, mn->key + weight);
+                path[node->data] = path[mn->data] + 1;
             }
         }
 
-        cout << fh << endl;
+        //cout << fh << endl;
     }
 
-    return nodes[dest]->key;
+    pathLength = path[dest];
+    int ans = nodes[dest]->key;
+
+    for(int i = 0; i < n; i++){
+        delete nodes[i];
+    }
+
+    return ans;
 }
 
 void tester(){
@@ -363,7 +417,7 @@ void tester(){
 
     map<int, Node *> mp;
     for(int i = 1; i <= 10; i++){
-        mp[i] =  new Node(i);
+        mp[i] =  new Node(2, i);
         fh.insert(mp[i]);
     }
     cout << fh << endl;
@@ -384,26 +438,55 @@ void tester(){
         }
 
         cout << fh << endl;
+        for(int i = 1; i <= 10; i++){
+            cout << i << " " << *mp[i] << endl;
+        }
     }
 }
 
 int main(int argc, char const *argv[])
 {
-    tester();
+    //tester();
+    ifstream file1("heap1.txt");
+    ifstream file2("heap2.txt");
+
+    if(!file1.is_open() || !file2.is_open()){
+        cerr << "File1 or File2 cannot be opened" << endl;
+        return 1;
+    }
+
     int n, m;
-    cin >> n >> m;
+    file1 >> n >> m;
 
     WeightedGraph graph(n);
     for(int i = 0; i < m; i++){
         int a, b, w;
-        cin >> a >> b >> w;
+        file1 >> a >> b >> w;
 
         graph[a].push_back({b,w});
+        graph[b].push_back({a,w});
     }
 
-    int u,v;
-    cin >> u >> v;
+    int t;
+    file2 >> t;
 
-    int ans = dijkstra(u, v, graph);
-    cout << ans << endl;
+    while (t--){
+        int u,v;
+        file2 >> u >> v;
+
+        int ansB, ansF, pathLengthB, pathLengthF;
+
+        auto startF = high_resolution_clock::now();
+        ansF = djaskatraWithFibonacciHeap(u, v, graph, pathLengthF);
+        auto endF = high_resolution_clock::now();
+        auto durF = duration_cast<microseconds>(endF-startF);
+
+        auto startB = high_resolution_clock::now();
+        ansB = djaskatraWithBinaryHeap(u, v, graph, pathLengthB);
+        auto endB = high_resolution_clock::now();
+        auto durB = duration_cast<microseconds>(endB-startB);
+
+        cout << pathLengthF << " " << ansF << " " << durB.count() 
+             << " " << durF.count() << endl;
+    }
 }
