@@ -114,12 +114,13 @@ class LinkedList
 private:
     struct Node
     {
-        int data;
+        string key;
+        int value;
         Node* next;
         Node* prev;
 
-        Node(int data, Node* prev, Node* next)
-            : data(data), next(next), prev(prev)
+        Node(string key, int value, Node* prev, Node* next)
+            : key(key), value(value), next(next), prev(prev)
         {
 
         }
@@ -129,11 +130,12 @@ private:
 
     Nodeptr _root;
     Nodeptr _last;
+    int _length;
     
-    Nodeptr _search_helper(int key){
+    Nodeptr _search_helper(string key){
         auto cur = _root->next;
         while(cur != _last){
-            if(cur->data == key) return cur;
+            if(cur->key == key) return cur;
             cur = cur->next;
         }
 
@@ -141,41 +143,48 @@ private:
     }
 public:
     LinkedList(/* args */){
-        _root = new Node(0, nullptr, nullptr);
-        _last = new Node(0, _root, nullptr);
+        _root = new Node("", -1, nullptr, nullptr);
+        _last = new Node("", -1, _root, nullptr);
         _root->next = _last;
+        _length = 0;
     }
 
-    bool insert(int key){
+    bool insert(string key, int value){
         auto t = _search_helper(key);
         if(t != _last) return false;
 
-        auto node = new Node(key, t->prev, t);
+        _length++;
+        auto node = new Node(key, value, t->prev, t);
         t->prev->next = node;
         t->prev = node;
         return true;
     }
 
-    bool search(int key){
+    int search(string key){
         auto t = _search_helper(key);
-        return t != _last;
+        return t->value;
     }
 
-    bool erase(int key){
+    bool erase(string key){
         auto t = _search_helper(key);
         if(t == _last) return false;
 
+        _length--;
         t->prev->next = t->next;
         t->next->prev = t->prev;
         delete t;
         return true;
     }
 
+    int length(){
+        return _length;
+    }
+
     friend ostream& operator<<(ostream &os, const LinkedList &l){
         auto cur = l._root->next;
         cout << "[ start : " ;
         while(cur != l._last){
-            cout << cur->data << " ";
+            cout << "{ " << cur->key << "," << cur->value << " } ";
             cur = cur->next;
         }
         cout << " : end ]" ;
@@ -200,12 +209,56 @@ class HashTableSeparateChaining{
     function<unsigned long(string)> _hash;
     LinkedList *table;
     const int _size;
+
+    inline int getHash(string key){
+        return _hash(key) % _size;
+    }
 public:
     HashTableSeparateChaining(function<unsigned long(string)> hash
         , int length
     ) : _hash(hash), _size(length)
     {
         table = new LinkedList[_size];
+    }
+
+    bool insert(string key, int value){
+        auto t = getHash(key);
+        return table[t].insert(key, value);
+    }
+
+    int search(string key){
+        auto t = getHash(key);
+        return table[t].search(key);
+    }
+
+    bool erase(string key){
+        auto t = getHash(key);
+        return table[t].erase(key);
+    }
+
+    double getAvgProbs(){
+        int cnt = 0, total = 0;
+        for(int i = 0; i < _size; i++){
+            if(table[i].length()){
+                cnt ++;
+                total += table[i].length();
+            }
+        }
+
+        return (double)total / cnt;
+    }
+
+    friend ostream& operator<<(ostream &os, 
+        const HashTableSeparateChaining &tbl){
+        for(int i = 0; i < tbl._size; i++){
+            os << tbl.table[i] << endl;
+        }
+
+        return os;
+    }
+
+    ~HashTableSeparateChaining(){
+        delete[] table;
     }
 };
 
@@ -227,17 +280,36 @@ int main(){
     //         << double_hash(s, 2) << endl;
     // }
 
-    LinkedList ll;
-    cout << ll << endl;
+    // LinkedList ll;
+    // cout << ll << endl;
     
-    int a,b;
+    // int a,b;HashTableSeparateChaining
+    // while(cin >> a >> b){
+    //     int res;
+    //     if(a == 1) res = ll.insert(b);
+    //     else if(a == 2) res = ll.search(b);
+    //     else if(a == 3) res = ll.erase(b);
+
+    //     cout << res << endl;
+    //     cout << ll << endl;
+    // }
+    
+    RandomStringGenerator rand(30);
+    HashTableSeparateChaining mp(djb2_hash, 20);
+
+    string b;
+    int a;
     while(cin >> a >> b){
         int res;
-        if(a == 1) res = ll.insert(b);
-        else if(a == 2) res = ll.search(b);
-        else if(a == 3) res = ll.erase(b);
+        if(a == 1){
+            int c;
+            cin >> c;
+            res = mp.insert(b, c);  
+        } 
+        else if(a == 2) res = mp.search(b);
+        else if(a == 3) res = mp.erase(b);
 
         cout << res << endl;
-        cout << ll << endl;
+        cout << mp << endl;
     }
 }
