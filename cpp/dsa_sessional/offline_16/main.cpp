@@ -2,8 +2,10 @@
 #include<string>
 #include<functional>
 #include<ctime>
+#include<chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 unsigned long djb2_hash(const string &s){
     unsigned long hash = 5381;
@@ -369,57 +371,155 @@ public:
     }
 };
 
-int main(){
-    // function<unsigned long(string)> hash = djb2_hash;
-    // RandomStringGenerator rand(30);
-    // Linear_prob linear_prob(djb2_hash, 97);
-    // Quardatic_prob quad_prob(djb2_hash, 97, 1, 1);
-    // Double_Hash double_hash(djb2_hash, RSHash, 97);
+vector<int> getRandomArray(int range, int size){
+    vector<int> array(size);
+    for(auto &i: array) i = rand() % range;
+    return array;
+}
 
-    // for(int i = 0; i < 10; i++){
-    //     auto s = rand.getNext();
-    //     cout << s << " " << hash(s) << endl;
-    //     cout << linear_prob(s, 0) << " " << linear_prob(s, 1) << " "
-    //         << linear_prob(s, 2) << endl;
-    //     cout << quad_prob(s, 0) << " " << quad_prob(s, 1) << " "
-    //         << quad_prob(s, 2) << endl;
-    //     cout << double_hash(s, 0) << " " << double_hash(s, 1) << " "
-    //         << double_hash(s, 2) << endl;
-    // }
+pair<unsigned long, unsigned long> getReport(int size, double loadFactor){
+    int occupied = size * loadFactor;
+    int searchAfterDelete = occupied*.1;
 
-    // LinkedList ll;
-    // cout << ll << endl;
-    
-    // int a,b;HashTableSeparateChaining
-    // while(cin >> a >> b){
-    //     int res;
-    //     if(a == 1) res = ll.insert(b);
-    //     else if(a == 2) res = ll.search(b);
-    //     else if(a == 3) res = ll.erase(b);
+    HashTableSeparateChaining table(djb2_hash, size);
 
-    //     cout << res << endl;
-    //     cout << ll << endl;
-    // }
-    
-    RandomStringGenerator rand(30);
-    HashTableSeparateChaining mp(djb2_hash, 20);
-    Double_Hash linear(djb2_hash, RSHash, 20);
-    HashTableProbing mp2(linear, 20);
-
-    string b;
-    int a;
-    while(cin >> a >> b){
-        int res;
-        if(a == 1){
-            int c;
-            cin >> c;
-            res = mp2.insert(b, c);  
-        } 
-        else if(a == 2) res = mp2.search(b);
-        else if(a == 3) res = mp2.erase(b);
-        else if( a== 4) res = mp2.getAvgProbs();
-
-        cout << res << endl;
-        cout << mp2 << endl;
+    RandomStringGenerator generator(27);
+    vector<string> keys(occupied);
+    for(auto &i: keys){
+        i = generator.getNext();
     }
+
+    /* insert into table */
+    for(int i = 0; i < keys.size(); i++){
+        table.insert(keys[i], i);
+    }
+
+    /* search into table */
+    vector<int> search_key_index = getRandomArray(occupied, occupied*.1);
+
+    auto startTime = high_resolution_clock::now();
+    for(auto i: search_key_index){
+        table.search(keys[i]);
+    }
+
+    auto endTime = high_resolution_clock::now();
+    auto search_time1 = duration_cast<microseconds>(endTime-startTime);
+
+    /* delete from table */
+    vector<int> delete_key_index = getRandomArray(occupied, searchAfterDelete);
+    for(int i = 0; i < keys.size(); i++){
+        table.erase(keys[i]);
+    }
+
+    /* search into table */
+    vector<int> key_index_deleted = getRandomArray(delete_key_index.size(), searchAfterDelete/2);
+    vector<int> key_index_not_deleted = getRandomArray(keys.size(), searchAfterDelete/2);
+
+    startTime = high_resolution_clock::now();
+    for(auto i: key_index_deleted){
+        table.search(keys[delete_key_index[i]]);
+    }
+    for(auto i: key_index_not_deleted){
+        table.search(keys[i]);
+    }
+
+    endTime = high_resolution_clock::now();
+    auto search_time2 = duration_cast<microseconds>(endTime-startTime);
+
+    return {search_time1.count(), search_time2.count()};
+}
+
+void generateReportChaining(int size){
+    cout << "Performance of separate chaining in various load factors" << endl;
+    cout << "========================================================" << endl;
+    cout << endl;
+    cout << "load factor: before delation, after delation" << endl;
+    for(double load_factor = .4; load_factor < .9; load_factor += .1){
+        auto t = getReport(size, load_factor);
+        cout << load_factor << " : " << t.first << " , " << t.second << endl;
+    }
+    cout << endl;
+}
+
+void getReport(int size, double loadFactor, HashTableProbing &table){
+    int occupied = size * loadFactor;
+    int searchAfterDelete = occupied*.1;
+
+    RandomStringGenerator generator(27);
+    vector<string> keys(occupied);
+    for(auto &i: keys){
+        i = generator.getNext();
+    }
+
+    /* insert into table */
+    for(int i = 0; i < keys.size(); i++){
+        table.insert(keys[i], i);
+    }
+
+    /* search into table */
+    vector<int> search_key_index = getRandomArray(occupied, occupied*.1);
+
+    auto startTime = high_resolution_clock::now();
+    for(auto i: search_key_index){
+        table.search(keys[i]);
+    }
+
+    auto endTime = high_resolution_clock::now();
+    auto search_time1 = duration_cast<microseconds>(endTime-startTime);
+    auto avg_prob1 = table.getAvgProbs();
+
+    /* delete from table */
+    vector<int> delete_key_index = getRandomArray(occupied, searchAfterDelete);
+    for(int i = 0; i < keys.size(); i++){
+        table.erase(keys[i]);
+    }
+
+    /* search into table */
+    table.resetProbCount();
+    vector<int> key_index_deleted = getRandomArray(delete_key_index.size(), searchAfterDelete/2);
+    vector<int> key_index_not_deleted = getRandomArray(keys.size(), searchAfterDelete/2);
+
+    startTime = high_resolution_clock::now();
+    for(auto i: key_index_deleted){
+        table.search(keys[delete_key_index[i]]);
+    }
+    for(auto i: key_index_not_deleted){
+        table.search(keys[i]);
+    }
+
+    endTime = high_resolution_clock::now();
+    auto search_time2 = duration_cast<microseconds>(endTime-startTime);
+    auto avg_prob2 = table.getAvgProbs();
+    
+    cout << loadFactor << " : " << search_time1.count() << " , " 
+         << search_time2.count() << " ; "
+         << avg_prob1 << " , " << avg_prob2
+         << endl;
+}
+
+void generateReportChaining(int size, HashTableProbing &table, string name){
+    cout << "Performance of " << name << " in various load factors" << endl;
+    cout << "========================================================" << endl;
+    cout << endl;
+    for(double load_factor = .4; load_factor < .9; load_factor += .1){
+        getReport(size, load_factor, table);
+    }
+    cout << endl;
+}
+
+int main(){
+    int size = 1000;
+    generateReportChaining(size);
+
+    Linear_prob linear(djb2_hash);
+    HashTableProbing mp_linear(linear, size);
+    generateReportChaining(size, mp_linear, "linear probing");
+
+    Quardatic_prob quar(djb2_hash, 1, 1);
+    HashTableProbing mp_quar(quar, size);
+    generateReportChaining(size, mp_quar, "quardatic probing");
+
+    Double_Hash double_hash(djb2_hash, RSHash, size);
+    HashTableProbing mp_double(double_hash, size);
+    generateReportChaining(size, mp_double, "double hashing");
 }
