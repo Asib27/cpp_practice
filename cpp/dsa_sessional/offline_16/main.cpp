@@ -55,35 +55,33 @@ public:
 
 class Linear_prob{
     function<unsigned long(string)> _hash;
-    unsigned long _m;
 
 public:
-    Linear_prob(function<int(string)> hash,unsigned long m) 
-        : _hash(hash), _m(m){
+    Linear_prob(function<int(string)> hash) 
+        : _hash(hash){
 
     }
 
     unsigned long operator()(string s, unsigned long i){
-        return (_hash(s) + i) % _m;
+        return (_hash(s) + i);
     }
 };
 
 class Quardatic_prob{
     function<unsigned long(string)> _hash;
-    unsigned long _m;
     unsigned long _c1;
     unsigned long _c2;
 
 public:
-    Quardatic_prob(function<int(string)> hash,unsigned long m,
+    Quardatic_prob(function<int(string)> hash ,
                     unsigned long c1, unsigned long c2) 
-        : _hash(hash), _m(m) , _c1(c1), _c2(c2)
+        : _hash(hash), _c1(c1), _c2(c2)
     {
 
     }
 
     unsigned long operator()(string s, unsigned long i){
-        return (_hash(s) + i*i*_c2 + i*_c1) % _m;
+        return (_hash(s) + i*i*_c2 + i*_c1);
     }
 };
 
@@ -262,6 +260,115 @@ public:
     }
 };
 
+class HashTableProbing{
+    const string DELETED = "!";
+    const string NIL = "-";
+
+    function<unsigned long(string, int)> _hash;
+    pair<string, int> *table;
+    const int _size;
+
+    int noOfProbs, noOfSearch;
+
+    inline int getHash(string key, int i){
+        return _hash(key, i) % _size;
+    }
+
+    int _searchHelper(string key){
+        for(int i = 0; i < _size; i++){
+            auto t = getHash(key, i);
+            if(table[t].first == key)
+                return t;
+            else if(table[t].first == NIL)
+                return _size;
+        }
+
+        return _size;
+    }
+
+public:
+    HashTableProbing(function<unsigned long(string, int)> hash, int length)
+        : _hash(hash), _size(length)
+    {
+        table = new pair<string, int> [_size];
+        for(int i = 0; i < _size; i++){
+            table[i].first = NIL;
+        }
+
+        noOfProbs = 0;
+        noOfSearch = 0;
+    }
+
+    bool insert(string key, int value){
+        auto idx = _searchHelper(key);
+        if(idx != _size) return false;
+
+        for(int i = 0;i < _size; i++){
+            auto t = getHash(key, i);
+            // cout << ">>> " << i << endl;
+            // cout << key << " " << t << endl;
+            if(table[t].first == DELETED || 
+                table[t].first ==  NIL) 
+            {
+                table[t] = {key, value};
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    int search(string key){
+        noOfSearch++;
+        for(int i = 0; i < _size; i++){
+            auto t = getHash(key, i);
+            if(table[t].first == key)
+                return table[t].second;
+            else if(table[t].first == NIL)
+                return -1;
+            noOfProbs++;
+        }
+
+        return -1;
+    }
+
+    bool erase(string key){
+        for(int i = 0; i < _size; i++){
+            auto t = getHash(key, i);
+            if(table[t].first == key){
+                table[t].first = DELETED;
+                return true;
+            }
+            else if(table[t].first == NIL) 
+                return false;
+        }
+
+        return false;
+    }
+
+    void resetProbCount(){
+        noOfProbs = 0;
+        noOfSearch = 0;
+    }
+
+    double getAvgProbs(){
+        return (double) noOfProbs / noOfSearch;
+    }
+
+    friend ostream& operator<<(ostream &os, const HashTableProbing &h){
+        for(int i = 0; i < h._size; i++){
+            os << "{ " << h.table[i].first << "," << h.table[i].second << "} ";
+        }
+
+        os << endl;
+        return os;
+    }
+
+    ~HashTableProbing(){
+        delete[] table;
+    }
+};
+
 int main(){
     // function<unsigned long(string)> hash = djb2_hash;
     // RandomStringGenerator rand(30);
@@ -296,6 +403,8 @@ int main(){
     
     RandomStringGenerator rand(30);
     HashTableSeparateChaining mp(djb2_hash, 20);
+    Double_Hash linear(djb2_hash, RSHash, 20);
+    HashTableProbing mp2(linear, 20);
 
     string b;
     int a;
@@ -304,12 +413,13 @@ int main(){
         if(a == 1){
             int c;
             cin >> c;
-            res = mp.insert(b, c);  
+            res = mp2.insert(b, c);  
         } 
-        else if(a == 2) res = mp.search(b);
-        else if(a == 3) res = mp.erase(b);
+        else if(a == 2) res = mp2.search(b);
+        else if(a == 3) res = mp2.erase(b);
+        else if( a== 4) res = mp2.getAvgProbs();
 
         cout << res << endl;
-        cout << mp << endl;
+        cout << mp2 << endl;
     }
 }
