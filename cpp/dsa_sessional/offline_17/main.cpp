@@ -218,19 +218,24 @@ public:
         return nextMat;
     }
 
-    friend bool operator<(BandMatrixHelper a, BandMatrixHelper b){
-        if(a.band != b.band) return a.band > b.band;
-        else return a.order < b.order;
+    bool check(){
+        return fixed_row == fixed_col && fixed_row == n-1;
     }
 
-    // bool operator=(const BandMatrixHelper &b){
-    //     this->band = b.band;
-    //     this->fixed_col = b.fixed_col;
-    //     this->fixed_row = b.fixed_row;
-    //     this->matrix = b.matrix;
-    //     this->n = b.n;
-    //     this->order = b.order;
-    // }
+    void show(){
+        cout << band << endl;
+        for(int i = 0; i < n; i++){
+            for(int j = 0; j < n; j++){
+                cout << (matrix[i][j]? 'X': '0');
+            }
+            cout << endl;
+        }
+    }
+
+    friend bool operator<(BandMatrixHelper a, BandMatrixHelper b){
+        if(a.band != b.band) return a.band > b.band;
+        else return a.order <= b.order;
+    }
 
     friend ostream& operator<<(ostream &os, const BandMatrixHelper& b){
         os << "{" << endl;
@@ -269,16 +274,38 @@ int main(){
     //     cout << b << endl;
     // }
 
-    BandMatrixHelper a(matrix, 0, 0, 1);
-    cout << a << endl;
-    auto z = a.getNext();
+    // BandMatrixHelper a(matrix, 0, 0, 1);
+    // cout << a << endl;
+    // auto z = a.getNext();
 
-    priority_queue<BandMatrixHelper> pq;
+    // priority_queue<BandMatrixHelper> pq;
     
-    for(auto i: z){
-        cout << i << endl;
-        pq.push(i);
+    // for(auto i: z){
+    //     cout << i << endl;
+    //     pq.push(i);
+    // }
+
+    // cout << pq.top() << endl;
+
+    BandMatrixHelper initial(matrix, 0, 0, 1);
+    priority_queue<BandMatrixHelper> pq;
+    pq.push(initial);
+
+    auto ans = pq.top();
+    while(!pq.empty()){
+        auto t = pq.top();
+        pq.pop();
+
+        if(t.check()){
+            ans = t;
+            break;
+        }
+
+        auto nexts = t.getNext();
+        for(auto i: nexts){
+            pq.push(i);
+        }
     }
 
-    cout << pq.top() << endl;
+    ans.show();
 }
