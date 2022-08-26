@@ -4,6 +4,36 @@
 
 using namespace std;
 
+template <typename T>
+class LazyObject
+{
+private:
+    T obj;
+    bool _assigned;
+public:
+    LazyObject(){
+        _assigned = false;
+    }
+
+    LazyObject(T obj): obj(obj){
+        _assigned = true;
+    }
+
+    bool isAssigned(){
+        return _assigned;
+    }
+    
+    void setObject(T obj){
+        this->obj = obj;
+        _assigned = true;
+    }
+
+    T getObject(){
+        return obj;
+    }
+};
+
+
 class BandMatrixHelper
 {
 private:
@@ -11,7 +41,7 @@ private:
     const int n , fixed_row, fixed_col;
     int band;
 
-    // typedef vector<vector<bool>> Matrix;
+    typedef vector<vector<int>> Matrix;
 
     /**
      * @brief calculates the unfixed band of the matrix
@@ -102,18 +132,56 @@ private:
         return mx;
     }
 
-public:
-    BandMatrixHelper(vector<vector<char>> matrix, int fixed_row, int fixed_col)
-        : fixed_row(fixed_row), fixed_col(fixed_col), n(matrix.size())
-    {
-        this->matrix.assign(n, vector<int> (n));
+    Matrix columnShuffle(const Matrix &src, int col){
+        // copy the fixed cols
+        int n = src.size();
+        Matrix dest(n, vector<int>(n));
         for(int i = 0; i < n; i++){
-            for(int j = 0; j < n; j++){
-                this->matrix[i][j] = (matrix[i][j] == 'X');
+            for(int j = 0; j < fixed_col; j++){
+                dest[i][j] = src[i][j];
             }
         }
 
+        //copy new fixed col 
+        for(int i = 0; i < n; i++){
+            dest[i][fixed_col] = src[i][col];
+        }
+
+        //copy rest of the columns
+        for(int j = fixed_col+1, k = fixed_col; j < n; j++, k++){
+            for(int i = 0; i < n; i++){
+                if(k == col) k++;
+                dest[i][j] = src[i][k];
+            }   
+        }
+
+        return dest;
+    }
+
+public:
+    BandMatrixHelper(vector<vector<int>> matrix, int fixed_row, int fixed_col)
+        : matrix(matrix), fixed_row(fixed_row), fixed_col(fixed_col), n(matrix.size())
+    {
         band = max(calculate_unfixed_band(), calculate_fixed_band());
+    }
+
+
+    vector<BandMatrixHelper> getNext(){
+        vector<BandMatrixHelper> nextMat;
+
+        if(fixed_row == fixed_col){
+            nextMat.push_back(BandMatrixHelper(matrix, fixed_row, fixed_col+1));
+            for(int i = fixed_col+1; i < n; i++){
+                Matrix mat = columnShuffle(matrix, i);
+                BandMatrixHelper t(mat, fixed_row, fixed_col+1);
+                nextMat.push_back(t);
+            }
+        }
+        else{
+
+        }
+
+        return nextMat;
     }
 
     friend ostream& operator<<(ostream &os, const BandMatrixHelper& b){
@@ -136,18 +204,27 @@ int main(){
     int n;
     cin >> n;
 
-    vector<vector<char>> matrix(n, vector<char>(n));
+    vector<vector<int>> matrix(n, vector<int>(n));
     for(auto &i: matrix){
         for(auto &j: i){
-            cin >> j;
+            char a; cin >> a;
+            j = (a=='X');
         }
     }
 
-    for(int i = 0; i < n; i++){
-        BandMatrixHelper a(matrix, i, i);
-        cout << a << endl;
+    // for(int i = 0; i < n; i++){
+    //     BandMatrixHelper a(matrix, i, i);
+    //     cout << a << endl;
 
-        BandMatrixHelper b(matrix, i, i+1);
-        cout << b << endl;
+    //     BandMatrixHelper b(matrix, i, i+1);
+    //     cout << b << endl;
+    // }
+
+    BandMatrixHelper a(matrix, 4, 4);
+    cout << a << endl;
+    auto z = a.getNext();
+
+    for(auto i: z){
+        cout << i << endl;
     }
 }
