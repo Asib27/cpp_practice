@@ -38,7 +38,7 @@ class BandMatrixHelper
 {
 private:
     vector<vector<int>> matrix;
-    const int n , fixed_row, fixed_col;
+    const int n , fixed_row, fixed_col, order;
     int band;
 
     typedef vector<vector<int>> Matrix;
@@ -180,8 +180,8 @@ private:
     }
 
 public:
-    BandMatrixHelper(vector<vector<int>> matrix, int fixed_row, int fixed_col)
-        : matrix(matrix), fixed_row(fixed_row), fixed_col(fixed_col), n(matrix.size())
+    BandMatrixHelper(vector<vector<int>> matrix, int fixed_row, int fixed_col, int order)
+        : matrix(matrix), fixed_row(fixed_row), fixed_col(fixed_col), n(matrix.size()), order(order)
     {
         band = max(calculate_unfixed_band(), calculate_fixed_band());
     }
@@ -193,18 +193,18 @@ public:
         if(fixed_row == fixed_col){
             if(fixed_row == n) return nextMat;
 
-            nextMat.push_back(BandMatrixHelper(matrix, fixed_row, fixed_col+1));
+            nextMat.push_back(BandMatrixHelper(matrix, fixed_row, fixed_col+1, 0));
             for(int i = fixed_col+1; i < n; i++){
                 Matrix mat = columnShuffle(matrix, i);
-                BandMatrixHelper t(mat, fixed_row, fixed_col+1);
+                BandMatrixHelper t(mat, fixed_row, fixed_col+1, nextMat.size());
                 nextMat.push_back(t);
             }
         }
         else{
-            nextMat.push_back(BandMatrixHelper(matrix, fixed_row+1, fixed_col));
+            nextMat.push_back(BandMatrixHelper(matrix, fixed_row+1, fixed_col, 0));
             for(int i = fixed_row+1; i < n; i++){
                 Matrix mat = rowShuffle(matrix, i);
-                BandMatrixHelper t(mat, fixed_row+1, fixed_col);
+                BandMatrixHelper t(mat, fixed_row+1, fixed_col, nextMat.size());
                 nextMat.push_back(t);
             }
         }
@@ -216,6 +216,7 @@ public:
         os << "{" << endl;
         os << "Fixed : " << b.fixed_row << " " << b.fixed_col << endl;
         os << "Band : " << b.band << endl;
+        os << "Order : " << b.order << endl;
         for(int i = 0; i < b.n; i++){
             for(int j = 0; j < b.n; j++){
                 os << b.matrix[i][j];
@@ -248,7 +249,7 @@ int main(){
     //     cout << b << endl;
     // }
 
-    BandMatrixHelper a(matrix, 2, 3);
+    BandMatrixHelper a(matrix, 1, 2, 1);
     cout << a << endl;
     auto z = a.getNext();
 
