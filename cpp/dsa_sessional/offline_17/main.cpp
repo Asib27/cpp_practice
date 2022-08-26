@@ -158,6 +158,27 @@ private:
         return dest;
     }
 
+    Matrix rowShuffle(const Matrix &src, int row){
+        int n = src.size();
+        Matrix dest(n, vector<int>(n));
+
+        // copy the fixed rows
+        for(int i = 0;  i < fixed_row; i++){
+            copy(src[i].begin(), src[i].end(), dest[i].begin());
+        }
+
+        //copy newly fixed row
+        copy(src[row].begin(), src[row].end(), dest[fixed_row].begin());
+
+        //copy other rows
+        for(int i = fixed_row+1, k = fixed_row; i < n; i++, k++){
+            if(k == row) k++;
+            copy(src[k].begin(), src[k].end(), dest[i].begin());
+        }
+
+        return dest;
+    }
+
 public:
     BandMatrixHelper(vector<vector<int>> matrix, int fixed_row, int fixed_col)
         : matrix(matrix), fixed_row(fixed_row), fixed_col(fixed_col), n(matrix.size())
@@ -170,6 +191,8 @@ public:
         vector<BandMatrixHelper> nextMat;
 
         if(fixed_row == fixed_col){
+            if(fixed_row == n) return nextMat;
+
             nextMat.push_back(BandMatrixHelper(matrix, fixed_row, fixed_col+1));
             for(int i = fixed_col+1; i < n; i++){
                 Matrix mat = columnShuffle(matrix, i);
@@ -178,7 +201,12 @@ public:
             }
         }
         else{
-
+            nextMat.push_back(BandMatrixHelper(matrix, fixed_row+1, fixed_col));
+            for(int i = fixed_row+1; i < n; i++){
+                Matrix mat = rowShuffle(matrix, i);
+                BandMatrixHelper t(mat, fixed_row+1, fixed_col);
+                nextMat.push_back(t);
+            }
         }
 
         return nextMat;
@@ -220,7 +248,7 @@ int main(){
     //     cout << b << endl;
     // }
 
-    BandMatrixHelper a(matrix, 4, 4);
+    BandMatrixHelper a(matrix, 2, 3);
     cout << a << endl;
     auto z = a.getNext();
 
