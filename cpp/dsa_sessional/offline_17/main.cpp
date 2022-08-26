@@ -1,6 +1,8 @@
 #include<iostream>
 #include<vector>
 #include<algorithm>
+#include<queue>
+#include<climits>
 
 using namespace std;
 
@@ -38,7 +40,7 @@ class BandMatrixHelper
 {
 private:
     vector<vector<int>> matrix;
-    const int n , fixed_row, fixed_col, order;
+    int n , fixed_row, fixed_col, order;
     int band;
 
     typedef vector<vector<int>> Matrix;
@@ -180,6 +182,10 @@ private:
     }
 
 public:
+    BandMatrixHelper(): band(INT_MAX), order(-1), n(INT_MAX), fixed_row(INT_MAX), fixed_col(INT_MAX){
+        
+    }
+
     BandMatrixHelper(vector<vector<int>> matrix, int fixed_row, int fixed_col, int order)
         : matrix(matrix), fixed_row(fixed_row), fixed_col(fixed_col), n(matrix.size()), order(order)
     {
@@ -211,6 +217,20 @@ public:
 
         return nextMat;
     }
+
+    friend bool operator<(BandMatrixHelper a, BandMatrixHelper b){
+        if(a.band != b.band) return a.band > b.band;
+        else return a.order < b.order;
+    }
+
+    // bool operator=(const BandMatrixHelper &b){
+    //     this->band = b.band;
+    //     this->fixed_col = b.fixed_col;
+    //     this->fixed_row = b.fixed_row;
+    //     this->matrix = b.matrix;
+    //     this->n = b.n;
+    //     this->order = b.order;
+    // }
 
     friend ostream& operator<<(ostream &os, const BandMatrixHelper& b){
         os << "{" << endl;
@@ -249,11 +269,16 @@ int main(){
     //     cout << b << endl;
     // }
 
-    BandMatrixHelper a(matrix, 1, 2, 1);
+    BandMatrixHelper a(matrix, 0, 0, 1);
     cout << a << endl;
     auto z = a.getNext();
 
+    priority_queue<BandMatrixHelper> pq;
+    
     for(auto i: z){
         cout << i << endl;
+        pq.push(i);
     }
+
+    cout << pq.top() << endl;
 }
